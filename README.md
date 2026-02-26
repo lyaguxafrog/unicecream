@@ -76,7 +76,7 @@ exclude = [
 ```yaml
 repos:
   - repo: https://github.com/lyaguxafrog/unicecream
-    rev: 0.2.0 # 0.2.0 is the minimum version that supports pre-commit.
+    rev: 0.2.1 # 0.2.1 is the minimum version that supports pre-commit.
     hooks:
       - id: unicecream
 ```
