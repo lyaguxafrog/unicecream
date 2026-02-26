@@ -1,0 +1,7 @@
+- id: unicecream
+  name: Unicecream debug remover
+  description: Remove icecream debug calls from Python files
+  entry: unicecream
+  language: python
+  types: [python]
+  pass_filenames: true
