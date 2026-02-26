@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import argparse
 from pathlib import Path
+import sys
 
 import libcst as cst
 from libcst import RemovalSentinel

@@ -27,3 +27,29 @@ dev = [
     "icecream>=2.1.10",
     "ruff>=0.15.2",
 ]
+
+
+[tool.ruff]
+target-version = "py39"
+line-length = 80
+ignore = ["UP009", "D100", "UP007", "D103", "D102", "D101", "D107"]
+exclude = [".venv/", "debug*"]
+
+[tool.ruff.lint]
+extend-select = ["UP", "D", "I"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["unicecream"]
+split-on-trailing-comma = true
+force-wrap-aliases = true
+force-sort-within-sections = true
+lines-after-imports = 2
+lines-between-types = 1
+
+[tool.ruff.format]
+quote-style = "double"
+skip-magic-trailing-comma = false
+line-ending = "auto"
