@@ -71,3 +71,12 @@ exclude = [
     "dist"
 ]
 ```
+
+## Pre-commit
+```yaml
+repos:
+  - repo: https://github.com/lyaguxafrog/unicecream
+    rev: 0.2.0 # 0.2.0 is the minimum version that supports pre-commit.
+    hooks:
+      - id: unicecream
+```
