@@ -16,7 +16,12 @@ dependencies = [
 Homepage = "https://github.com/lyaguxafrog/unicecream"
 
 [project.scripts]
-unicecream = "unicecream.cli:main"
+unicecream = "unicecream.__main__:main"
+
+[project.optional-dependencies]
+toml = [
+    "toml>=0.10.2",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
@@ -53,3 +58,6 @@ lines-between-types = 1
 quote-style = "double"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+[tool.unicecream]
+ignore = "IC001"
