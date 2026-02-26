@@ -1,59 +1,71 @@
 # -*- coding: utf-8 -*-
 
-import ast
 import sys
 from pathlib import Path
 
+import libcst as cst
+from libcst import RemovalSentinel
 
-class IcecreamRemover(ast.NodeTransformer):
-    def visit_Import(self, node):
-        node.names = [n for n in node.names if n.name != "icecream"]
-        if not node.names:
-            return None
-        return node
 
-    def visit_ImportFrom(self, node):
-        if node.module == "icecream":
-            node.names = [n for n in node.names if n.name != "ic"]
-            if not node.names:
-                return None
-        return node
+class IcecreamRemover(cst.CSTTransformer):
+    def leave_Import(self, original_node, updated_node):
+        # import icecream
+        names = [
+            name for name in updated_node.names
+            if not (
+                isinstance(name.name, cst.Name)
+                and name.name.value == "icecream"
+            )
+        ]
 
-    def visit_Expr(self, node):
+        if not names:
+            return RemovalSentinel.REMOVE
+
+        return updated_node.with_changes(names=names)
+
+    def leave_ImportFrom(self, original_node, updated_node):
+        # from icecream import ic
+        if (
+            original_node.module
+            and isinstance(original_node.module, cst.Name)
+            and original_node.module.value == "icecream"
+        ):
+            names = [
+                name for name in updated_node.names
+                if not (
+                    isinstance(name, cst.ImportAlias)
+                    and isinstance(name.name, cst.Name)
+                    and name.name.value == "ic"
+                )
+            ]
+
+            if not names:
+                return RemovalSentinel.REMOVE
+
+            return updated_node.with_changes(names=names)
+
+        return updated_node
+
+    def leave_Call(self, original_node, updated_node):
         # ic(...)
-        if isinstance(node.value, ast.Call):
-            if self._is_ic_call(node.value):
-                if len(node.value.args) == 1 and not node.value.keywords:
-                    return ast.Expr(value=node.value.args[0])
-                return None
-        return self.generic_visit(node)
+        if isinstance(updated_node.func, cst.Name) and updated_node.func.value == "ic":
+            if len(updated_node.args) == 1 and updated_node.args[0].keyword is None:
+                return updated_node.args[0].value
 
-    def visit_Call(self, node):
-        # x = ic(...)
-        if self._is_ic_call(node):
-            if len(node.args) == 1 and not node.keywords:
-                return self.visit(node.args[0])
-        return self.generic_visit(node)
+            parent = self.get_metadata(cst.metadata.ParentNodeProvider, original_node)
+            if isinstance(parent, cst.Expr):
+                return RemovalSentinel.REMOVE
 
-    @staticmethod
-    def _is_ic_call(node):
-        return (
-            isinstance(node.func, ast.Name)
-            and node.func.id == "ic"
-        )
+        return updated_node
 
 
 def clean_code(code: str) -> str:
     try:
-        tree = ast.parse(code)
-    except SyntaxError:
+        wrapper = cst.MetadataWrapper(cst.parse_module(code))
+        tree = wrapper.visit(IcecreamRemover())
+        return tree.code
+    except Exception:
         return code
-
-    transformer = IcecreamRemover()
-    new_tree = transformer.visit(tree)
-    ast.fix_missing_locations(new_tree)
-
-    return ast.unparse(new_tree) + "\n"
 
 
 def process_file(path: Path, check: bool = False) -> bool:
@@ -99,3 +111,6 @@ def main():
 
     if check and changed:
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
