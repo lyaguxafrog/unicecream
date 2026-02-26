@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import argparse
 from pathlib import Path
 
 import libcst as cst
@@ -102,10 +103,15 @@ class IcecreamRemover(cst.CSTTransformer):
 
     def leave_Call(self, original_node, updated_node):
         if isinstance(updated_node.func, cst.Name) and updated_node.func.value == "ic":
+            # ic(expr) -> expr
             if len(updated_node.args) == 1 and updated_node.args[0].keyword is None:
                 return updated_node.args[0].value
 
-            parent = self.get_metadata(cst.metadata.ParentNodeProvider, original_node)
+            # standalone ic(a, b) -> remove
+            parent = self.get_metadata(
+                cst.metadata.ParentNodeProvider,
+                original_node,
+            )
             if isinstance(parent, cst.Expr):
                 return RemovalSentinel.REMOVE
 
@@ -130,17 +136,29 @@ def clean_code(code: str) -> str:
         return code
 
 
-def process_file(path: Path, check: bool = False) -> bool:
+def should_report(code, select, ignore):
+    if select and code not in select:
+        return False
+    if ignore and code in ignore:
+        return False
+    return True
+
+
+def process_file(path: Path, check=False, select=None, ignore=None):
     original = path.read_text(encoding="utf-8")
 
     if check:
         violations = find_violations(original)
+        violations = [
+            v for v in violations
+            if should_report(v[2], select, ignore)
+        ]
+
         if violations:
             for line, col, code, message in violations:
-                print(
-                    f"{path}:{line}:{col}: {code} {message}"
-                )
+                print(f"{path}:{line}:{col}: {code} {message}")
             return True
+
         return False
 
     cleaned = clean_code(original)
@@ -152,32 +170,75 @@ def process_file(path: Path, check: bool = False) -> bool:
 
     return False
 
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="unicecream",
+        description="Remove icecream debug calls from Python files.",
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+
+    parser.add_argument(
+        "path",
+        help="File or directory to process",
+    )
+
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Do not modify files, just report violations",
+    )
+
+    parser.add_argument(
+        "--select",
+        action="append",
+        metavar="CODE",
+        help="Select rule code (can be used multiple times)",
+    )
+
+    parser.add_argument(
+        "--ignore",
+        action="append",
+        metavar="CODE",
+        help="Ignore rule code (can be used multiple times)",
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="unicecream 0.1.0",
+    )
+
+    return parser
+
 
 def main():
-    args = sys.argv[1:]
+    parser = build_parser()
+    args = parser.parse_args()
 
-    if not args:
-        print("Usage: unicecream [--check] <file_or_directory>")
-        sys.exit(1)
-
-    check = False
-    if "--check" in args:
-        check = True
-        args.remove("--check")
-
-    target = Path(args[0])
+    target = Path(args.path)
     changed = False
 
     if target.is_file() and target.suffix == ".py":
-        changed |= process_file(target, check)
+        changed |= process_file(
+            target,
+            check=args.check,
+            select=args.select,
+            ignore=args.ignore,
+        )
+
     elif target.is_dir():
         for file in target.rglob("*.py"):
-            changed |= process_file(file, check)
+            changed |= process_file(
+                file,
+                check=args.check,
+                select=args.select,
+                ignore=args.ignore,
+            )
     else:
         print("No Python files found.")
         sys.exit(1)
 
-    if check and changed:
+    if args.check and changed:
         sys.exit(1)
 
 
