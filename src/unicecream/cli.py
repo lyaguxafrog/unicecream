@@ -7,9 +7,64 @@ import libcst as cst
 from libcst import RemovalSentinel
 
 
+class IcecreamFinder(cst.CSTVisitor):
+    METADATA_DEPENDENCIES = (
+        cst.metadata.PositionProvider,
+    )
+
+    def __init__(self):
+        self.violations = []
+
+    def visit_Call(self, node):
+        if isinstance(node.func, cst.Name) and node.func.value == "ic":
+            pos = self.get_metadata(cst.metadata.PositionProvider, node)
+            self.violations.append(
+                (
+                    pos.start.line,
+                    pos.start.column + 1,
+                    "IC001",
+                    "remove icecream call",
+                )
+            )
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            if (
+                isinstance(alias.name, cst.Name)
+                and alias.name.value == "icecream"
+            ):
+                pos = self.get_metadata(cst.metadata.PositionProvider, node)
+                self.violations.append(
+                    (
+                        pos.start.line,
+                        pos.start.column + 1,
+                        "IC002",
+                        "remove icecream import",
+                    )
+                )
+
+    def visit_ImportFrom(self, node):
+        if (
+            node.module
+            and isinstance(node.module, cst.Name)
+            and node.module.value == "icecream"
+        ):
+            pos = self.get_metadata(cst.metadata.PositionProvider, node)
+            self.violations.append(
+                (
+                    pos.start.line,
+                    pos.start.column + 1,
+                    "IC003",
+                    "remove icecream from-import",
+                )
+            )
+
 class IcecreamRemover(cst.CSTTransformer):
+    METADATA_DEPENDENCIES = (
+        cst.metadata.ParentNodeProvider,
+    )
+
     def leave_Import(self, original_node, updated_node):
-        # import icecream
         names = [
             name for name in updated_node.names
             if not (
@@ -24,7 +79,6 @@ class IcecreamRemover(cst.CSTTransformer):
         return updated_node.with_changes(names=names)
 
     def leave_ImportFrom(self, original_node, updated_node):
-        # from icecream import ic
         if (
             original_node.module
             and isinstance(original_node.module, cst.Name)
@@ -47,7 +101,6 @@ class IcecreamRemover(cst.CSTTransformer):
         return updated_node
 
     def leave_Call(self, original_node, updated_node):
-        # ic(...)
         if isinstance(updated_node.func, cst.Name) and updated_node.func.value == "ic":
             if len(updated_node.args) == 1 and updated_node.args[0].keyword is None:
                 return updated_node.args[0].value
@@ -57,6 +110,15 @@ class IcecreamRemover(cst.CSTTransformer):
                 return RemovalSentinel.REMOVE
 
         return updated_node
+
+def find_violations(code: str):
+    try:
+        wrapper = cst.MetadataWrapper(cst.parse_module(code))
+        finder = IcecreamFinder()
+        wrapper.visit(finder)
+        return sorted(set(finder.violations))
+    except Exception:
+        return []
 
 
 def clean_code(code: str) -> str:
@@ -70,19 +132,25 @@ def clean_code(code: str) -> str:
 
 def process_file(path: Path, check: bool = False) -> bool:
     original = path.read_text(encoding="utf-8")
+
+    if check:
+        violations = find_violations(original)
+        if violations:
+            for line, col, code, message in violations:
+                print(
+                    f"{path}:{line}:{col}: {code} {message}"
+                )
+            return True
+        return False
+
     cleaned = clean_code(original)
 
     if cleaned != original:
-        if check:
-            print(f"would clean: {path}")
-            return True
-        else:
-            path.write_text(cleaned, encoding="utf-8")
-            print(f"cleaned: {path}")
-            return False
-    else:
-        print(f"unchanged: {path}")
-        return False
+        path.write_text(cleaned, encoding="utf-8")
+        print(f"cleaned: {path}")
+        return True
+
+    return False
 
 
 def main():
@@ -111,6 +179,7 @@ def main():
 
     if check and changed:
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
