@@ -3,7 +3,7 @@
 A simple formatter for removing [icecream](https://github.com/gruns/icecream) from your code after debugging.
 
 ![Python Version](https://img.shields.io/badge/Python-3.9+-blue?logo=python&logoColor=white)
-[![PyPI - Version](https://img.shields.io/pypi/v/jamlib)](https://pypi.org/project/unicecream/)
+[![PyPI - Version](https://img.shields.io/pypi/v/unicecream)](https://pypi.org/project/unicecream/)
 [![GitHub License](https://img.shields.io/github/license/lyaguxafrog/unicecream)](https://github.com/lyaguxafrog/unicecream/blob/master/LICENSE.md)
 
 ## Example
