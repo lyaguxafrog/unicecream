@@ -33,7 +33,7 @@ def build_parser():
     parser.add_argument(
         "--version",
         action="version",
-        version="unicecream 0.1.0",
+        version="unicecream 0.2.0",
     )
 
     parser.add_argument(
