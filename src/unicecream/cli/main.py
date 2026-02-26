@@ -47,28 +47,20 @@ def main():
     ignore = args.ignore or config["ignore"]
     exclude = config["exclude"]
 
-    target = Path(args.path)
-
     rules = collect_rules(select, ignore)
 
     changed = False
 
-    if target.is_file() and target.suffix == ".py":
-        changed |= process_file(
-            target,
-            args.check,
-            rules,
-            select,
-            ignore,
-        )
+    # pre-commit
+    if args.files:
+        for file_path in args.files:
+            path = Path(file_path)
 
-    elif target.is_dir():
-        for file in target.rglob("*.py"):
-            if is_excluded(file, exclude):
+            if not path.exists() or path.suffix != ".py":
                 continue
 
             changed |= process_file(
-                file,
+                path,
                 args.check,
                 rules,
                 select,
@@ -76,8 +68,33 @@ def main():
             )
 
     else:
-        print("No Python files found")
-        sys.exit(1)
+        target = Path(args.path)
+
+        if target.is_dir():
+            for file in target.rglob("*.py"):
+                if is_excluded(file, exclude):
+                    continue
+
+                changed |= process_file(
+                    file,
+                    args.check,
+                    rules,
+                    select,
+                    ignore,
+                )
+
+        elif target.is_file():
+            changed |= process_file(
+                target,
+                args.check,
+                rules,
+                select,
+                ignore,
+            )
+
+        else:
+            print("No python files found")
+            sys.exit(1)
 
     if args.check and changed:
         sys.exit(1)

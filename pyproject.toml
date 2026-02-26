@@ -1,6 +1,6 @@
 [project]
 name = "unicecream"
-version = "0.1.0"
+version = "0.2.0"
 description = "A simple formatter for removing icecream from your code after debugging."
 license = {text = "Apache-2.0"}
 readme = {file = "README.md", content-type = "text/markdown"}
@@ -16,7 +16,7 @@ dependencies = [
 Homepage = "https://github.com/lyaguxafrog/unicecream"
 
 [project.scripts]
-unicecream = "unicecream.__main__:main"
+unicecream = "unicecream.cli.main:main"
 
 [project.optional-dependencies]
 toml = [
