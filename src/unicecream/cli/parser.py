@@ -36,4 +36,10 @@ def build_parser():
         version="unicecream 0.1.0",
     )
 
+    parser.add_argument(
+        "files",
+        nargs="*",
+        help="Files passed from pre-commit",
+    )
+
     return parser
